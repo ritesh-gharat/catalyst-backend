@@ -18,12 +18,12 @@ const signup = async (req, res) => {
       !confirmPassword ||
       !gender
     ) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({ error: "All fields are required" });
     }
 
     // checking if passwords match
     if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match" });
+      return res.status(400).json({ error: "Passwords do not match" });
     }
 
     // checking if the user already exists in db
@@ -66,11 +66,11 @@ const signup = async (req, res) => {
         profilePicture: newUser.profilePicture,
       });
     } else {
-      res.status(400).json({ message: "Invalid user data" });
+      res.status(400).json({ error: "Invalid user data" });
     }
   } catch (error) {
     // if any error occurs then send the error message
-    res.status(500).json({ message: "Something went wrong: Sign-Up" });
+    res.status(500).json({ error: "Something went wrong: Sign-Up" });
     console.error("Error in sign-up:", error);
   }
 };
@@ -80,6 +80,7 @@ const login = async (req, res) => {
   try {
     // getting the data from user
     const { username, password } = req.body;
+
     // findind the user in db
     const user = await User.findOne({ username });
     // checking if the user exists and password is correct

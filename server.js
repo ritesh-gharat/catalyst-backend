@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 
 import authRoutes from "./src/routes/auth.routes.js";
 import connectToMongoDB from "./src/db/connectToMongoDB.js";
@@ -7,6 +8,15 @@ import connectToMongoDB from "./src/db/connectToMongoDB.js";
 const port = process.env.PORT || 3000;
 const app = express();
 dotenv.config();
+
+// Enable CORS for specific origin
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL, // Allow only this origin
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true, // Allow cookies and authentication headers
+  })
+);
 
 // Middleware
 app.use(express.json()); // to parse the incoming request as JSON
