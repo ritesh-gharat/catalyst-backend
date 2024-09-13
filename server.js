@@ -2,11 +2,12 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 
+import { app, server } from "./src/socket/socket.js";
+
 import authRoutes from "./src/routes/auth.routes.js";
 import connectToMongoDB from "./src/db/connectToMongoDB.js";
 
 const port = process.env.PORT || 3000;
-const app = express();
 dotenv.config();
 
 // Enable CORS for specific origin
@@ -28,7 +29,7 @@ app.get("/", (req, res) => {
 });
 
 // Start the server
-app.listen(port, () => {
+server.listen(port, () => {
   // Connect to MongoDB
   connectToMongoDB();
   console.log(`Server is running on port ${port}`);
