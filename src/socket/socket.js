@@ -5,15 +5,10 @@ import http from "http";
 import express from "express";
 
 import { generateResponse } from "../services/geminiAPI.js";
-
-// // Generate a response
-// const result = await generateResponse({ prompt: "What is photosynthesis?" });
-
-// // Stream the response to the client
-// for await (const chunk of result.stream) {
-//   const chunkText = chunk.text();
-//   console.log(chunkText);
-// }
+import {
+  createChatForSession,
+  updateMessagesForSession,
+} from "../controllers/chat.controller.js";
 
 const app = express();
 
@@ -27,7 +22,7 @@ const io = new Server(server, {
 
 // Socket.io connection
 io.on("connection", (socket) => {
-  console.log("User Connected", socket.id);
+  // console.log("User Connected", socket.id);
 
   // Handle the "generate" event
   socket.on("generate", async (session) => {
@@ -46,15 +41,32 @@ io.on("connection", (socket) => {
       // Stream the response to the client
       for await (const chunk of result.stream) {
         const chunkText = chunk.text();
-        //console.log(chunkText);
+        console.log(chunkText);
 
         response += chunkText;
         // Emit the response to the client
         socket.emit("generateRes", chunkText);
       }
 
-      // Emit the end of the response to the client
-      socket.emit("response", response);
+      var dbResponse = {};
+      const sessionId = session.id.split("-")[1];
+      if (sessionId == "0") {
+        dbResponse = await createChatForSession(
+          session,
+          session.file,
+          response
+        );
+      } else {
+        dbResponse = await updateMessagesForSession(
+          sessionId,
+          session,
+          session.file,
+          response
+        );
+      }
+      console.log("DB Response:", dbResponse);
+      // Emit the end of the db response to the client
+      socket.emit("response", dbResponse);
     } catch (error) {
       // Emit the response to the client
       socket.emit("response", response);

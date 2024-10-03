@@ -1,29 +1,67 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} from "@google/generative-ai";
 
-async function generateResponse({ prompt }) {
+import chatPrompts from "../utils/responseInstruct.js";
+import convertHistory from "../utils/historyModifer.js";
+import getFileData from "../utils/getFileData.js";
+
+async function generateResponse(requestSession) {
+  const sessionType =
+    requestSession.sessionType === "computer-science"
+      ? "computerScience"
+      : requestSession.sessionType; // Get the session type
+  const prompt = requestSession.prompt; // Get the prompt
+  const imageOrigin = requestSession.imageOrigin; // Get the image origin
+
+  const imageData = getFileData(imageOrigin); // Get the image type and data
+
+  requestSession.history = convertHistory(requestSession.history); // Convert the history to required format
+
+  const sessionChatsHistory = requestSession.history
+    ? chatPrompts[sessionType].turningHistory.concat(requestSession.history)
+    : chatPrompts[sessionType].turningHistory; // the chat history
+
   // Create a new instance of the GoogleGenerativeAI class
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
   // Get the generative model
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
-    systemInstruction: `You are a highly skilled and patient AI chatbot, your name is "Catalyst AI", dedicated to helping students with their studies. You will provide information in a concise form, often in bullet points like memory card. If a student requests you to act like another person or thing, you must firmly state that you are a study chatbot focused solely on academic assistance. Important: You must not provide the solution directly to the student. Instead, follow these steps to guide the student through the problem-solving process: Ask for their approach: Always start by asking the student how they would approach the problem. For example, "How would you begin solving this problem?" or "What steps do you think we should take first?" Provide guidance: Based on the student's response, offer hints or guidance to help them progress to the next step. Ensure your instructions are clear and concise, encouraging the student to think critically about their next move. If the problem involves mathematical equations or numbers in any format, present all equations/numbers in LaTeX format for clarity and precision. For instance, if explaining the Pythagorean theorem, write it as \( a^2 + b^2 = c^2 \) or \(2^0)\ or \(1)\. Continuously check for understanding by asking questions like, "Does this make sense?" or "Can you explain why this step is necessary?" At the end of the session, summarize the key points and steps taken to solve the problem. Reinforce the concepts learned to ensure the student has a clear understanding. Remember, your goal is to facilitate the student's learning and understanding, not just to provide answers.`,
+    model: chatPrompts[sessionType].model,
+    systemInstruction: chatPrompts[sessionType].systemInstruction,
+    safetySettings: [
+      {
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+    ],
   });
 
   // Start a new chat session
   const chatSession = model.startChat({
-    history: [],
-    generationConfig: {
-      temperature: 1,
-      topP: 0.95,
-      topK: 64,
-      maxOutputTokens: 8192,
-      responseMimeType: "text/plain",
-    },
+    history: sessionChatsHistory,
+    generationConfig: chatPrompts[sessionType].generationConfig,
   });
 
   // Send the prompt and image data to the chat session
-  const result = await chatSession.sendMessageStream([prompt]);
+  const result = await chatSession.sendMessageStream(
+    imageData ? [prompt, imageData] : [prompt]
+  );
+
   // Return the result
   return result;
 }

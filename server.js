@@ -1,14 +1,16 @@
 import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
 import cors from "cors";
 
 import { app, server } from "./src/socket/socket.js";
 
 import authRoutes from "./src/routes/auth.routes.js";
+import uploadRoutes from "./src/routes/upload.routes.js";
+
 import connectToMongoDB from "./src/db/connectToMongoDB.js";
 
 const port = process.env.PORT || 3000;
-dotenv.config();
 
 // Enable CORS for specific origin
 app.use(
@@ -22,6 +24,9 @@ app.use(
 // Middleware
 app.use(express.json()); // to parse the incoming request as JSON
 app.use("/api/auth", authRoutes); // to use the auth routes
+
+// for file upload
+app.use(uploadRoutes);
 
 // Define the routes
 app.get("/", (req, res) => {
