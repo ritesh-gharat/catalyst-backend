@@ -5,10 +5,6 @@ import http from "http";
 import express from "express";
 
 import { generateResponse } from "../services/geminiAPI.js";
-import {
-  createChatForSession,
-  updateMessagesForSession,
-} from "../controllers/chat.controller.js";
 
 const app = express();
 
@@ -26,7 +22,7 @@ io.on("connection", (socket) => {
 
   // Handle the "generate" event
   socket.on("generate", async (session) => {
-    console.log(session);
+    //console.log(session);
 
     // Initialize the response
     let response = "";
@@ -41,32 +37,15 @@ io.on("connection", (socket) => {
       // Stream the response to the client
       for await (const chunk of result.stream) {
         const chunkText = chunk.text();
-        console.log(chunkText);
+        //console.log(chunkText);
 
         response += chunkText;
         // Emit the response to the client
         socket.emit("generateRes", chunkText);
       }
 
-      var dbResponse = {};
-      const sessionId = session.id.split("-")[1];
-      if (sessionId == "0") {
-        dbResponse = await createChatForSession(
-          session,
-          session.file,
-          response
-        );
-      } else {
-        dbResponse = await updateMessagesForSession(
-          sessionId,
-          session,
-          session.file,
-          response
-        );
-      }
-      console.log("DB Response:", dbResponse);
       // Emit the end of the db response to the client
-      socket.emit("response", dbResponse);
+      socket.emit("response", response);
     } catch (error) {
       // Emit the response to the client
       socket.emit("response", response);
